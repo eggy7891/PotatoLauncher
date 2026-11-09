@@ -55,7 +55,7 @@ internal static class Program
             resolved.Lineage);
         Assert.Equal(2, resolved.Metadata.Libraries.Count);
         Assert.Equal("example.parent", resolved.Metadata.Libraries[0].Name.Split(':')[0]);
-        Assert.Equal("fabric-loader", resolved.Metadata.Libraries[1].Name.Split(':')[0]);
+        Assert.Equal("fabric-loader", resolved.Metadata.Libraries[1].Name.Split(':')[1]);
         Assert.Equal(LoaderKind.Fabric, resolved.Loader);
     }
 
