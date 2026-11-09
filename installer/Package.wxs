@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
-  <Package Name="PotatoLauncher 1.0.0"
+  <Package Name="PotatoLauncher 1.0.1"
            Manufacturer="PotatoLauncher contributors"
-           Version="1.0.0.0"
+           Version="1.0.1.0"
            UpgradeCode="8ec1ded4-6b79-4c98-8b8c-f7d98a9e8c22"
            Scope="perUser"
            Compressed="yes"

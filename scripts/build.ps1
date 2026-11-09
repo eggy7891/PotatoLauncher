@@ -23,16 +23,16 @@ try {
         -p:DebugSymbols=false `
         -o $publish
 
-    $zip = Join-Path $artifacts "PotatoLauncher-1.0.0-win-x64-portable.zip"
+    $zip = Join-Path $artifacts "PotatoLauncher-1.0.1-win-x64-portable.zip"
     Compress-Archive -Path (Join-Path $publish "*") -DestinationPath $zip -CompressionLevel Optimal -Force
 
     if (-not $SkipMsi) {
-        wix build installer\Package.wxs -arch x64 -o (Join-Path $artifacts "PotatoLauncher-1.0.0-win-x64.msi")
+        wix build installer\Package.wxs -arch x64 -o (Join-Path $artifacts "PotatoLauncher-1.0.1-win-x64.msi")
     }
 
     Write-Host "Portable: $zip"
     if (-not $SkipMsi) {
-        Write-Host "Installer: $(Join-Path $artifacts 'PotatoLauncher-1.0.0-win-x64.msi')"
+        Write-Host "Installer: $(Join-Path $artifacts 'PotatoLauncher-1.0.1-win-x64.msi')"
     }
 }
 finally {

@@ -42,7 +42,7 @@ public sealed class ModrinthClient : IModrinthClient
     public ModrinthClient(HttpClient httpClient)
     {
         _httpClient = httpClient;
-        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("PotatoLauncher/1.0.0 (+https://github.com/eggy7891/PotatoLauncher)");
+        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("PotatoLauncher/1.0.1 (+https://github.com/eggy7891/PotatoLauncher)");
     }
 
     public async Task<ModrinthSearchResult> SearchAsync(

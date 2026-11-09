@@ -104,7 +104,7 @@ public sealed class LaunchPlanner : ILaunchPlanner
             ["version_type"] = "PotatoLauncher",
             ["natives_directory"] = nativeDirectory,
             ["launcher_name"] = "PotatoLauncher",
-            ["launcher_version"] = "1.0.0",
+            ["launcher_version"] = "1.0.1",
             ["classpath"] = classpath,
             ["classpath_separator"] = Path.PathSeparator.ToString(),
             ["library_directory"] = librariesRoot,
@@ -140,7 +140,7 @@ public sealed class LaunchPlanner : ILaunchPlanner
 
         jwtArgs.Insert(0, $"-Xmx{Math.Clamp(request.MemoryMb, 512, 65536)}m");
         jwtArgs.Add("-Dminecraft.launcher.brand=PotatoLauncher");
-        jwtArgs.Add("-Dminecraft.launcher.version=1.0.0");
+        jwtArgs.Add("-Dminecraft.launcher.version=1.0.1");
 
         if (request.TextureServer is not null &&
             request.Account.Kind == AccountKind.Offline &&

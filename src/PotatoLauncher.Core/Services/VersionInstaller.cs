@@ -66,7 +66,7 @@ public sealed class VersionInstaller : IVersionInstaller
         _httpClient = httpClient;
         _downloadQueue = downloadQueue;
         _resolver = resolver;
-        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("PotatoLauncher/1.0.0 (+https://github.com/eggy7891/PotatoLauncher)");
+        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("PotatoLauncher/1.0.1 (+https://github.com/eggy7891/PotatoLauncher)");
     }
 
     public async Task<IReadOnlyList<VersionManifestEntry>> GetVanillaVersionsAsync(
