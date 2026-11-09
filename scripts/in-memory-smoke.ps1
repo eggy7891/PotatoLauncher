@@ -84,6 +84,8 @@ public static class PotatoLauncherInMemorySmoke
             var resolved = resolver.ResolveAsync(root, "1.20.1-Fabric 0.16.0").GetAwaiter().GetResult();
             Assert(resolved.Lineage.Count == 2, "inheritance lineage");
             Assert(resolved.Loader == LoaderKind.Fabric, "loader detection");
+            Assert(resolved.Metadata.MainClass == "net.fabricmc.loader.impl.launch.knot.KnotClient",
+                   "child main class precedence");
             Assert(resolved.Metadata.JavaVersion?.MajorVersion == 17, "Java metadata merge");
         }
         finally

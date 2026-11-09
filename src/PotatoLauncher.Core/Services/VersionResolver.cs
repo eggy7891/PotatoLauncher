@@ -245,14 +245,14 @@ public sealed class VersionResolver : IVersionResolver
             Id = childToParent[0].Id,
             InheritsFrom = childToParent[0].InheritsFrom,
             Type = childToParent[0].Type,
-            MainClass = childToParent.Select(item => item.MainClass).LastOrDefault(value => !string.IsNullOrWhiteSpace(value)),
-            Assets = childToParent.Select(item => item.Assets).LastOrDefault(value => !string.IsNullOrWhiteSpace(value)),
-            AssetIndex = childToParent.Select(item => item.AssetIndex).LastOrDefault(value => value is not null),
+            MainClass = childToParent.Select(item => item.MainClass).FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)),
+            Assets = childToParent.Select(item => item.Assets).FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)),
+            AssetIndex = childToParent.Select(item => item.AssetIndex).FirstOrDefault(value => value is not null),
             LegacyMinecraftArguments = childToParent.Select(item => item.LegacyMinecraftArguments)
-                .LastOrDefault(value => !string.IsNullOrWhiteSpace(value)),
+                .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)),
             JavaVersion = childToChildJavaVersion(childToParent),
-            Logging = childToParent.Select(item => item.Logging).LastOrDefault(value => value?.Client is not null),
-            ReleaseTime = childToParent.Select(item => item.ReleaseTime).LastOrDefault(value => value is not null)
+            Logging = childToParent.Select(item => item.Logging).FirstOrDefault(value => value?.Client is not null),
+            ReleaseTime = childToParent.Select(item => item.ReleaseTime).FirstOrDefault(value => value is not null)
         };
 
         foreach (var entry in parentToChild.SelectMany(item => item.Downloads))
