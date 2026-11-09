@@ -1,0 +1,10 @@
+PotatoLauncher third-party notices
+
+authlib-injector 1.2.8
+- Copyright its contributors.
+- GNU Affero General Public License v3 or later.
+- https://github.com/yushijinhun/authlib-injector
+
+Minecraft and related marks are trademarks of Microsoft/Mojang. PotatoLauncher
+is an independent project and is not affiliated with or endorsed by Microsoft,
+Mojang, PCL, HMCL, or Modrinth.

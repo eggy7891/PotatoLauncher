@@ -1,0 +1,9 @@
+authlib-injector is distributed under the GNU Affero General Public License
+version 3 or later.
+
+Project: https://github.com/yushijinhun/authlib-injector
+Version: 1.2.8
+
+PotatoLauncher invokes authlib-injector as a separate Java agent only when an
+offline account has a user-selected custom skin or cape. The complete license
+and source offer are available from the upstream project.

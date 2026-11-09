@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AssemblyName>PotatoLauncher</AssemblyName>
+    <RootNamespace>PotatoLauncher.App</RootNamespace>
+    <ApplicationIcon>Assets\PotatoLauncher.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PotatoLauncher.Core\PotatoLauncher.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Assets\authlib-injector-LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\authlib-injector-COPYING.md" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\AGPLv3-with-authlib-injector-exception.txt" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\third-party-notices.txt" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\authlib-injector-1.2.8.jar" Link="dependencies\authlib-injector-1.2.8.jar"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Resource Include="Assets\PotatoLauncher.ico" />
+  </ItemGroup>
+</Project>

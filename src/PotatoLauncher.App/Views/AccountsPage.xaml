@@ -1,0 +1,113 @@
+<UserControl x:Class="PotatoLauncher.App.Views.AccountsPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Style="{StaticResource PageContent}">
+    <Grid Margin="16,24,16,16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <Grid Margin="6,0,6,18">
+            <StackPanel>
+                <TextBlock Text="账号与外观" Style="{StaticResource PageTitle}" />
+                <TextBlock Text="离线账号可使用本地皮肤和披风；微软官方外观只读。" Style="{StaticResource MutedText}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <Button Content="离线账号" Style="{StaticResource OutlineButton}" Command="{Binding AddOfflineAccountCommand}" />
+                <Button Content="微软登录" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0"
+                        Command="{Binding MicrosoftLoginCommand}" />
+            </StackPanel>
+        </Grid>
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1*" />
+                <ColumnDefinition Width="1.35*" />
+            </Grid.ColumnDefinitions>
+            <Border Style="{StaticResource Card}" Padding="12" Margin="0,0,10,0">
+                <ListBox ItemsSource="{Binding Accounts}" SelectedItem="{Binding SelectedAccount}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="44" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Border Width="36" Height="36" CornerRadius="18"
+                                        Background="{DynamicResource AccentContainerBrush}">
+                                    <TextBlock Text="{Binding Name, StringFormat={}{0}}" MaxWidth="30"
+                                               TextTrimming="CharacterEllipsis" FontWeight="Bold"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding KindLabel}" Style="{StaticResource MutedText}" Margin="0,4,0,0" />
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Border>
+            <Border Grid.Column="1" Style="{StaticResource Card}" Margin="10,0,0,0">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="{Binding SelectedAccountName}" FontSize="28" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding SelectedAccountKind}" Style="{StaticResource MutedText}"
+                                   Margin="0,6,0,24" />
+                        <TextBlock Text="皮肤" Style="{StaticResource SectionTitle}" />
+                        <Border Height="150" CornerRadius="20" Background="{DynamicResource SurfaceContainerHighBrush}"
+                                Margin="0,0,0,12">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <TextBlock Text="64×64 / 64×32 PNG" FontSize="18" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding SelectedAccount.SkinPath, FallbackValue=未设置离线皮肤}"
+                                           Style="{StaticResource MutedText}" Margin="0,7,0,0"
+                                           TextTrimming="CharacterEllipsis" MaxWidth="360" />
+                            </StackPanel>
+                        </Border>
+                        <Button Content="导入离线皮肤" Style="{StaticResource TonalButton}" HorizontalAlignment="Left"
+                                Command="{Binding ImportSkinCommand}" CommandParameter="skin" />
+                        <TextBlock Text="披风" Style="{StaticResource SectionTitle}" Margin="0,24,0,12" />
+                        <Border Height="120" CornerRadius="20" Background="{DynamicResource SurfaceContainerHighBrush}"
+                                Margin="0,0,0,12">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <TextBlock Text="64×32 / 22×17 PNG" FontSize="18" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding SelectedAccount.CapePath, FallbackValue=未设置离线披风}"
+                                           Style="{StaticResource MutedText}" Margin="0,7,0,0"
+                                           TextTrimming="CharacterEllipsis" MaxWidth="360" />
+                            </StackPanel>
+                        </Border>
+                        <Button Content="导入离线披风" Style="{StaticResource TonalButton}" HorizontalAlignment="Left"
+                                Command="{Binding ImportSkinCommand}" CommandParameter="cape" />
+                        <TextBlock Text="官方皮肤（只读）" Style="{StaticResource SectionTitle}" Margin="0,26,0,8" />
+                        <ItemsControl ItemsSource="{Binding SelectedAccount.OfficialSkins}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border CornerRadius="14" Padding="12" Margin="0,0,0,7"
+                                            Background="{DynamicResource SurfaceContainerBrush}">
+                                        <Grid>
+                                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding Alias}" HorizontalAlignment="Right"
+                                                       Foreground="{DynamicResource OnSurfaceVariantBrush}" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Text="官方披风（只读）" Style="{StaticResource SectionTitle}" Margin="0,20,0,8" />
+                        <ItemsControl ItemsSource="{Binding SelectedAccount.OfficialCapes}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border CornerRadius="14" Padding="12" Margin="0,0,0,7"
+                                            Background="{DynamicResource SurfaceContainerBrush}">
+                                        <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Button Content="删除当前账号" Style="{StaticResource TextButton}" Foreground="{DynamicResource ErrorBrush}"
+                                HorizontalAlignment="Left" Margin="0,24,0,0" Command="{Binding RemoveAccountCommand}" />
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

@@ -1,0 +1,105 @@
+name: Signed release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  signed-release:
+    if: vars.SIGNPATH_ORGANIZATION_ID != ''
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Install WiX
+        run: dotnet tool install --global wix --version 7.0.1
+      - name: Build and test
+        run: |
+          dotnet build PotatoLauncher.slnx -c Release
+          dotnet run --project tests/PotatoLauncher.Tests/PotatoLauncher.Tests.csproj -c Release --no-build
+      - name: Publish unsigned application
+        run: >
+          dotnet publish src/PotatoLauncher.App/PotatoLauncher.App.csproj
+          -c Release -r win-x64 --self-contained true
+          -p:PublishSingleFile=false -p:DebugType=None -p:DebugSymbols=false
+          -o artifacts/publish
+      - name: Stage application binaries
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifacts/signing-app | Out-Null
+          Copy-Item artifacts/publish/PotatoLauncher.exe artifacts/signing-app/
+          Copy-Item artifacts/publish/PotatoLauncher.dll artifacts/signing-app/
+          Copy-Item artifacts/publish/PotatoLauncher.Core.dll artifacts/signing-app/
+      - name: Upload application binaries
+        id: upload-app
+        uses: actions/upload-artifact@v7
+        with:
+          name: potato-launcher-application-binaries
+          path: artifacts/signing-app/
+          archive: false
+          if-no-files-found: error
+      - name: Sign application binaries
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: ${{ vars.SIGNPATH_BINARY_CONFIG_SLUG }}
+          github-artifact-id: ${{ steps.upload-app.outputs.artifact-id }}
+          wait-for-completion: true
+          skip-decompress: true
+          output-artifact-directory: artifacts/signed-app
+      - name: Install signed application binaries
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem artifacts/signed-app -Recurse -Filter PotatoLauncher.exe | Select-Object -First 1
+          $appDll = Get-ChildItem artifacts/signed-app -Recurse -Filter PotatoLauncher.dll | Select-Object -First 1
+          $coreDll = Get-ChildItem artifacts/signed-app -Recurse -Filter PotatoLauncher.Core.dll | Select-Object -First 1
+          if (-not $exe -or -not $appDll -or -not $coreDll) { throw "Signed application binaries missing" }
+          Copy-Item $exe.FullName artifacts/publish/PotatoLauncher.exe -Force
+          Copy-Item $appDll.FullName artifacts/publish/PotatoLauncher.dll -Force
+          Copy-Item $coreDll.FullName artifacts/publish/PotatoLauncher.Core.dll -Force
+      - name: Build MSI
+        shell: pwsh
+        run: wix build installer/Package.wxs -arch x64 -o artifacts/PotatoLauncher-0.0.1-beta-win-x64.msi
+      - name: Upload MSI
+        id: upload-msi
+        uses: actions/upload-artifact@v7
+        with:
+          name: potato-launcher-msi
+          path: artifacts/PotatoLauncher-0.0.1-beta-win-x64.msi
+          archive: false
+          if-no-files-found: error
+      - name: Sign MSI
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: ${{ vars.SIGNPATH_MSI_CONFIG_SLUG }}
+          github-artifact-id: ${{ steps.upload-msi.outputs.artifact-id }}
+          wait-for-completion: true
+          skip-decompress: true
+          output-artifact-directory: artifacts/signed-msi
+      - name: Package signed release
+        shell: pwsh
+        run: |
+          $signedMsi = Get-ChildItem artifacts/signed-msi -Recurse -Filter *.msi | Select-Object -First 1
+          if (-not $signedMsi) { throw "Signed MSI missing" }
+          Copy-Item $signedMsi.FullName artifacts/PotatoLauncher-0.0.1-beta-win-x64.msi -Force
+          Compress-Archive -Path artifacts/publish/* -DestinationPath artifacts/PotatoLauncher-0.0.1-beta-win-x64-portable.zip -Force
+      - name: Upload signed release
+        uses: actions/upload-artifact@v7
+        with:
+          name: potato-launcher-signed-release
+          path: |
+            artifacts/PotatoLauncher-0.0.1-beta-win-x64-portable.zip
+            artifacts/PotatoLauncher-0.0.1-beta-win-x64.msi
+          if-no-files-found: error

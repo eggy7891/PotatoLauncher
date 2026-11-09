@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="src/PotatoLauncher.Core/PotatoLauncher.Core.csproj" />
+  <Project Path="src/PotatoLauncher.App/PotatoLauncher.App.csproj" />
+  <Project Path="tests/PotatoLauncher.Tests/PotatoLauncher.Tests.csproj" />
+</Solution>
