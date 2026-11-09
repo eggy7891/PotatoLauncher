@@ -2,11 +2,11 @@
 
 PotatoLauncher 是一个原创 Material Design 3 风格的 Windows Minecraft 启动器。它采用 .NET 10、WPF 和 MVVM 构建，支持离线与微软账号、本地实例、原版/Fabric/Quilt/Forge/NeoForge 安装、Modrinth 内容、并行下载以及离线自定义皮肤和披风。
 
-本项目参考了 Minecraft 启动协议的公开行为，并根据 PCL2 2.99.0 与 HMCL 3.16.4 的可观察运行流程做独立实现。它不包含或复用这些启动器的名称、图标、文案、代码或视觉资产。
+PotatoLauncher 是一个独立实现的原创 Windows 桌面应用，采用自己的产品名称、视觉设计、交互流程和代码结构。
 
 ## License
 
-PotatoLauncher 以 [MIT License](LICENSE) 开源。你可以使用、修改、分发和再发布本项目，但必须保留版权与许可证声明。Minecraft、PCL 和 HMCL 不属于本项目，相关商标与第三方组件遵循各自许可证。
+PotatoLauncher 以 [MIT License](LICENSE) 开源。你可以使用、修改、分发和再发布本项目，但必须保留版权与许可证声明。Minecraft 及其相关商标属于 Microsoft/Mojang；第三方组件遵循各自的许可证。
 
 签名发布通过 [SignPath Foundation](https://signpath.org/) 的免费开源代码签名计划处理；签名工作流位于 `.github/workflows/signpath-release.yml`，只有仓库维护者配置 SignPath 项目变量和 API Token 后才可运行。
 
