@@ -48,7 +48,9 @@ public static class PotatoLauncherInMemorySmoke
         }
         Assert(MavenPath.FromCoordinate("org.example:demo:1.2.3:natives-windows") ==
                "org/example/demo/1.2.3/demo-1.2.3-natives-windows.jar", "Maven path");
-        Assert(IdentityUtil.OfflineUuid("Notch").Length == 32, "offline UUID");
+        var offlineUuid = IdentityUtil.OfflineUuid("Notch");
+        Assert(offlineUuid.Length == 32, "offline UUID length");
+        Assert(offlineUuid[12] == '3', "offline UUID version");
         Assert(RuleEvaluator.IsAllowed(new[] { new RuleEntry { Action = "allow", Os = new OsRule { Name = "windows" } } }),
                "Windows rule");
         Assert(!RuleEvaluator.IsAllowed(new[] { new RuleEntry { Action = "allow", Os = new OsRule { Name = "linux" } } }),
