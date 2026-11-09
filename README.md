@@ -62,8 +62,8 @@ dependencies/
 
 ```text
 artifacts\publish\
-artifacts\PotatoLauncher-0.0.1-beta-win-x64-portable.zip
-artifacts\PotatoLauncher-0.0.1-beta-win-x64.msi
+artifacts\PotatoLauncher-1.0.0-win-x64-portable.zip
+artifacts\PotatoLauncher-1.0.0-win-x64.msi
 ```
 
 只构建并运行测试：

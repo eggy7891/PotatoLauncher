@@ -67,13 +67,13 @@ jobs:
           Copy-Item $coreDll.FullName artifacts/publish/PotatoLauncher.Core.dll -Force
       - name: Build MSI
         shell: pwsh
-        run: wix build installer/Package.wxs -arch x64 -o artifacts/PotatoLauncher-0.0.1-beta-win-x64.msi
+        run: wix build installer/Package.wxs -arch x64 -o artifacts/PotatoLauncher-1.0.0-win-x64.msi
       - name: Upload MSI
         id: upload-msi
         uses: actions/upload-artifact@v7
         with:
           name: potato-launcher-msi
-          path: artifacts/PotatoLauncher-0.0.1-beta-win-x64.msi
+          path: artifacts/PotatoLauncher-1.0.0-win-x64.msi
           archive: false
           if-no-files-found: error
       - name: Sign MSI
@@ -93,13 +93,13 @@ jobs:
         run: |
           $signedMsi = Get-ChildItem artifacts/signed-msi -Recurse -Filter *.msi | Select-Object -First 1
           if (-not $signedMsi) { throw "Signed MSI missing" }
-          Copy-Item $signedMsi.FullName artifacts/PotatoLauncher-0.0.1-beta-win-x64.msi -Force
-          Compress-Archive -Path artifacts/publish/* -DestinationPath artifacts/PotatoLauncher-0.0.1-beta-win-x64-portable.zip -Force
+          Copy-Item $signedMsi.FullName artifacts/PotatoLauncher-1.0.0-win-x64.msi -Force
+          Compress-Archive -Path artifacts/publish/* -DestinationPath artifacts/PotatoLauncher-1.0.0-win-x64-portable.zip -Force
       - name: Upload signed release
         uses: actions/upload-artifact@v7
         with:
           name: potato-launcher-signed-release
           path: |
-            artifacts/PotatoLauncher-0.0.1-beta-win-x64-portable.zip
-            artifacts/PotatoLauncher-0.0.1-beta-win-x64.msi
+            artifacts/PotatoLauncher-1.0.0-win-x64-portable.zip
+            artifacts/PotatoLauncher-1.0.0-win-x64.msi
           if-no-files-found: error

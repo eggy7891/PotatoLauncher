@@ -127,7 +127,7 @@ public sealed class AppRuntime
         Directory.CreateDirectory(Paths.LogsDirectory);
         CurrentLogFile = Path.Combine(Paths.LogsDirectory, $"launcher-{DateTime.Now:yyyyMMdd-HHmmss}.log");
         File.WriteAllText(CurrentLogFile,
-            $"PotatoLauncher 0.0.1-beta{Environment.NewLine}" +
+            $"PotatoLauncher 1.0.0{Environment.NewLine}" +
             $"Data: {Paths.Root}{Environment.NewLine}" +
             $"Minecraft: {Settings.Settings.MinecraftDirectory}{Environment.NewLine}{Environment.NewLine}",
             Encoding.UTF8);
