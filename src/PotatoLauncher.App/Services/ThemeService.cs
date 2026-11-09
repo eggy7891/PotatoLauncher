@@ -21,8 +21,6 @@ public sealed class ThemeService
         {
             Application.Current.Resources[pair.Key] = new SolidColorBrush(pair.Value);
         }
-        Application.Current.Resources["PageAnimationDuration"] =
-            new Duration(TimeSpan.FromMilliseconds(reducedMotion ? 0 : 180));
     }
 
     private static bool IsSystemDark()

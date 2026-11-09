@@ -25,7 +25,6 @@
         <SolidColorBrush x:Key="ErrorBrush" Color="#FFB4AB" />
         <SolidColorBrush x:Key="SuccessBrush" Color="#9DD7A5" />
         <SolidColorBrush x:Key="HoverOverlayBrush" Color="#1FFFFFFF" />
-        <Duration x:Key="PageAnimationDuration">0:0:0.18</Duration>
 
         <Style TargetType="Window">
             <Setter Property="FontFamily" Value="{StaticResource AppFont}" />
@@ -64,8 +63,7 @@
                         <BeginStoryboard>
                             <Storyboard>
                                 <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                                                 From="0.25" To="1"
-                                                 Duration="{DynamicResource PageAnimationDuration}" />
+                                                 From="0.25" To="1" Duration="0:0:0.18" />
                             </Storyboard>
                         </BeginStoryboard>
                     </Trigger.EnterActions>

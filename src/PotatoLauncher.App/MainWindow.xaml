@@ -127,7 +127,9 @@
                     <TextBlock Text="{Binding StatusText}" FontSize="11" Foreground="{DynamicResource OnSurfaceVariantBrush}" />
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,16,0" VerticalAlignment="Center">
-                    <ProgressBar Width="180" Value="{Binding ProgressValue}" IsIndeterminate="{Binding IsProgressIndeterminate}"
+                    <ProgressBar Width="180"
+                                 Value="{Binding ProgressValue, Mode=OneWay}"
+                                 IsIndeterminate="{Binding IsProgressIndeterminate, Mode=OneWay}"
                                  Margin="0,0,12,0" />
                     <Button Content="日志" Style="{StaticResource TextButton}" FontSize="11"
                             Command="{Binding ToggleLogPanelCommand}" />
