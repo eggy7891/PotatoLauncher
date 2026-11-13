@@ -187,7 +187,7 @@ public sealed class LocalTextureServer : IAsyncDisposable
             {
                 ["serverName"] = "PotatoLauncher",
                 ["implementationName"] = "PotatoLauncher Local Textures",
-                ["implementationVersion"] = "1.0.1",
+                ["implementationVersion"] = "1.0.2",
                 ["feature.non_email_login"] = true
             }
         };

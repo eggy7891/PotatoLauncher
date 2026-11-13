@@ -15,6 +15,7 @@ public interface IModrinthClient
         string? loader,
         int offset,
         int limit,
+        string index = "downloads",
         CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<ModrinthVersion>> GetVersionsAsync(
@@ -42,7 +43,7 @@ public sealed class ModrinthClient : IModrinthClient
     public ModrinthClient(HttpClient httpClient)
     {
         _httpClient = httpClient;
-        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("PotatoLauncher/1.0.1 (+https://github.com/eggy7891/PotatoLauncher)");
+        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("PotatoLauncher/1.0.2 (+https://github.com/eggy7891/PotatoLauncher)");
     }
 
     public async Task<ModrinthSearchResult> SearchAsync(
@@ -52,6 +53,7 @@ public sealed class ModrinthClient : IModrinthClient
         string? loader,
         int offset,
         int limit,
+        string index,
         CancellationToken cancellationToken = default)
     {
         var facets = new List<List<string>>
@@ -70,7 +72,7 @@ public sealed class ModrinthClient : IModrinthClient
         var url = "https://api.modrinth.com/v2/search" +
                   $"?query={Uri.EscapeDataString(query ?? "")}" +
                   $"&facets={Uri.EscapeDataString(JsonSerializer.Serialize(facets))}" +
-                  $"&index=relevance&offset={Math.Max(0, offset)}&limit={Math.Clamp(limit, 1, 100)}";
+                  $"&index={Uri.EscapeDataString(index)}&offset={Math.Max(0, offset)}&limit={Math.Clamp(limit, 1, 100)}";
         var data = await _httpClient.GetFromJsonAsync<SearchResponse>(url, JsonOptions, cancellationToken)
             .ConfigureAwait(false) ?? throw new InvalidDataException("Modrinth 搜索响应为空。");
 

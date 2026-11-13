@@ -10,6 +10,14 @@ PotatoLauncher 以 [MIT License](LICENSE) 开源。你可以使用、修改、�
 
 签名发布通过 [SignPath Foundation](https://signpath.org/) 的免费开源代码签名计划处理；签名工作流位于 `.github/workflows/signpath-release.yml`，只有仓库维护者配置 SignPath 项目变量和 API Token 后才可运行。
 
+## Latest download
+
+[`latest/`](latest/) 是稳定下载入口：
+
+[下载最新 Windows x64 便携版](https://github.com/eggy7891/PotatoLauncher/releases/latest/download/PotatoLauncher-win-x64-portable.zip)
+
+`latest/version.json` 会由 GitHub Actions 在正式 Release 发布后自动更新，稳定下载文件名始终保持为 `PotatoLauncher-win-x64-portable.zip`。
+
 ## 功能
 
 - 扫描 `.minecraft/versions`，解析版本继承、library 规则、natives、classpath、assets 和启动参数。
@@ -62,8 +70,8 @@ dependencies/
 
 ```text
 artifacts\publish\
-artifacts\PotatoLauncher-1.0.1-win-x64-portable.zip
-artifacts\PotatoLauncher-1.0.1-win-x64.msi
+artifacts\PotatoLauncher-1.0.2-win-x64-portable.zip
+artifacts\PotatoLauncher-1.0.2-win-x64.msi
 ```
 
 只构建并运行测试：

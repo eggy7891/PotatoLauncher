@@ -24,7 +24,7 @@ public sealed class DownloadQueue : IDownloadQueue
     public DownloadQueue(HttpClient httpClient)
     {
         _httpClient = httpClient;
-        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("PotatoLauncher/1.0.1 (+https://github.com/eggy7891/PotatoLauncher)");
+        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("PotatoLauncher/1.0.2 (+https://github.com/eggy7891/PotatoLauncher)");
     }
 
     public async Task DownloadAsync(

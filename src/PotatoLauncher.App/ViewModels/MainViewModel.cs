@@ -22,15 +22,18 @@ public sealed class MainViewModel : ObservableObject
     private double _progressValue;
     private bool _isProgressIndeterminate;
     private VersionManifestEntry? _selectedVanillaVersion;
-    private bool _includeSnapshots;
+    private bool _includeSnapshots = true;
     private LoaderKind _selectedLoader = LoaderKind.Fabric;
     private string _loaderGameVersion = "1.20.1";
     private string? _selectedLoaderVersion;
-    private string _searchQuery = "";
-    private string _searchProjectType = "mod";
-    private string _searchGameVersion = "1.20.1";
-    private string _searchLoader = "fabric";
-    private ModrinthProject? _selectedProject;
+    private string _selectedDownloadSection = "vanilla";
+    private CatalogProject? _selectedCatalogProject;
+    private CatalogVersion? _selectedCatalogVersion;
+    private string? _selectedProjectGameVersion;
+    private string? _selectedProjectLoader;
+    private InstanceDescriptor? _selectedDownloadInstance;
+    private bool _isProjectDetailVisible;
+    private string _catalogStatus = "进入下载页后会自动刷新";
     private string _newOfflineName = "";
     private bool _showLogPanel;
     private int _busyDepth;
@@ -48,6 +51,14 @@ public sealed class MainViewModel : ObservableObject
             new NavigationItem("settings", "设置", "M12 8a4 4 0 100 8 4 4 0 000-8zm0-5v3m0 12v3M3 12h3m12 0h3")
         ];
         Navigation[0].IsSelected = true;
+        DownloadSections =
+        [
+            new DownloadSectionItem("vanilla", "原版游戏", null) { IsSelected = true },
+            new DownloadSectionItem("mod", "模组", CatalogContentType.Mod),
+            new DownloadSectionItem("resourcepack", "资源包", CatalogContentType.ResourcePack),
+            new DownloadSectionItem("shader", "光影", CatalogContentType.Shader),
+            new DownloadSectionItem("modpack", "整合包", CatalogContentType.Modpack)
+        ];
         NavigateCommand = new RelayCommand(parameter =>
         {
             if (parameter is string page)
@@ -66,11 +77,18 @@ public sealed class MainViewModel : ObservableObject
         SaveSettingsCommand = new AsyncRelayCommand(SaveAndApplySettingsAsync);
         ApplyThemeCommand = new AsyncRelayCommand(ApplyThemeAsync);
         LoadVanillaVersionsCommand = new AsyncRelayCommand(LoadVanillaVersionsAsync);
-        InstallVanillaCommand = new AsyncRelayCommand(InstallVanillaAsync, () => SelectedVanillaVersion is not null);
+        InstallVanillaCommand = new AsyncRelayCommand(parameter =>
+            InstallVanillaVersionAsync(parameter as VersionManifestEntry ?? SelectedVanillaVersion));
         LoadLoaderVersionsCommand = new AsyncRelayCommand(LoadLoaderVersionsAsync);
         InstallLoaderCommand = new AsyncRelayCommand(InstallLoaderAsync, () => !string.IsNullOrWhiteSpace(SelectedLoaderVersion));
-        SearchModrinthCommand = new AsyncRelayCommand(SearchModrinthAsync);
-        InstallProjectCommand = new AsyncRelayCommand(parameter => InstallProjectAsync(parameter as ModrinthProject ?? SelectedProject));
+        SelectDownloadSectionCommand = new AsyncRelayCommand(parameter =>
+            SelectDownloadSectionAsync(parameter as string ?? "vanilla"));
+        OpenCatalogProjectCommand = new AsyncRelayCommand(parameter =>
+            OpenCatalogProjectAsync(parameter as CatalogProject ?? SelectedCatalogProject));
+        CloseCatalogProjectCommand = new RelayCommand(CloseCatalogProject);
+        DownloadCatalogVersionCommand = new AsyncRelayCommand(
+            DownloadCatalogVersionAsync,
+            () => SelectedCatalogVersion is not null && SelectedDownloadInstance is not null);
         OpenDataFolderCommand = new RelayCommand(OpenDataFolder);
         OpenLogFolderCommand = new RelayCommand(OpenLogFolder);
         ClearVisibleLogCommand = new RelayCommand(() =>
@@ -84,18 +102,23 @@ public sealed class MainViewModel : ObservableObject
 
     public LauncherSettings Settings { get; }
     public ObservableCollection<NavigationItem> Navigation { get; }
+    public ObservableCollection<DownloadSectionItem> DownloadSections { get; }
     public ObservableCollection<InstanceDescriptor> Instances { get; } = [];
     public ObservableCollection<AccountSession> Accounts { get; } = [];
     public ObservableCollection<JavaRuntime> JavaRuntimes { get; } = [];
     public ObservableCollection<VersionManifestEntry> VanillaVersions { get; } = [];
+    public ObservableCollection<string> GameVersionChoices { get; } = [];
     public ObservableCollection<string> LoaderVersions { get; } = [];
-    public ObservableCollection<ModrinthProject> ModrinthProjects { get; } = [];
+    public ObservableCollection<CatalogProject> CatalogProjects { get; } = [];
+    public ObservableCollection<CatalogVersion> ProjectVersions { get; } = [];
+    public ObservableCollection<CatalogVersion> FilteredProjectVersions { get; } = [];
+    public ObservableCollection<string> ProjectGameVersions { get; } = [];
+    public ObservableCollection<string> ProjectLoaders { get; } = [];
+    public ObservableCollection<InstanceDescriptor> MatchingDownloadInstances { get; } = [];
     public ObservableCollection<string> Logs { get; } = [];
     public IReadOnlyList<LoaderKind> LoaderKinds { get; } =
         [LoaderKind.Fabric, LoaderKind.Quilt, LoaderKind.Forge, LoaderKind.NeoForge];
     public IReadOnlyList<ThemeMode> ThemeModes { get; } = [ThemeMode.Dark, ThemeMode.Light, ThemeMode.System];
-    public IReadOnlyList<string> ProjectTypes { get; } = ["mod", "resourcepack", "shader"];
-    public IReadOnlyList<string> SearchLoaders { get; } = ["fabric", "quilt", "forge", "neoforge", ""];
 
     public string SelectedPage
     {
@@ -176,7 +199,6 @@ public sealed class MainViewModel : ObservableObject
         {
             if (SetProperty(ref _selectedVanillaVersion, value))
             {
-                InstallVanillaCommand.RaiseCanExecuteChanged();
                 if (value is not null)
                 {
                     LoaderGameVersion = value.Id;
@@ -215,34 +237,108 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
-    public string SearchQuery
+    public string SelectedDownloadSection
     {
-        get => _searchQuery;
-        set => SetProperty(ref _searchQuery, value);
+        get => _selectedDownloadSection;
+        private set
+        {
+            if (SetProperty(ref _selectedDownloadSection, value))
+            {
+                OnPropertyChanged(nameof(IsVanillaSection));
+                OnPropertyChanged(nameof(IsCatalogSection));
+                OnPropertyChanged(nameof(IsCatalogListVisible));
+                OnPropertyChanged(nameof(DownloadSectionTitle));
+            }
+        }
     }
 
-    public string SearchProjectType
+    public bool IsVanillaSection => SelectedDownloadSection == "vanilla";
+    public bool IsCatalogSection => !IsVanillaSection;
+
+    public string DownloadSectionTitle => DownloadSections
+        .FirstOrDefault(section => section.Key == SelectedDownloadSection)?.Label ?? "";
+
+    public bool IsProjectDetailVisible
     {
-        get => _searchProjectType;
-        set => SetProperty(ref _searchProjectType, value);
+        get => _isProjectDetailVisible;
+        private set
+        {
+            if (SetProperty(ref _isProjectDetailVisible, value))
+            {
+                OnPropertyChanged(nameof(IsCatalogListVisible));
+            }
+        }
     }
 
-    public string SearchGameVersion
+    public bool IsCatalogListVisible => IsCatalogSection && !IsProjectDetailVisible;
+
+    public CatalogProject? SelectedCatalogProject
     {
-        get => _searchGameVersion;
-        set => SetProperty(ref _searchGameVersion, value);
+        get => _selectedCatalogProject;
+        private set
+        {
+            if (SetProperty(ref _selectedCatalogProject, value))
+            {
+                OnPropertyChanged(nameof(ShowCatalogLoaderFilter));
+            }
+        }
     }
 
-    public string SearchLoader
+    public bool ShowCatalogLoaderFilter =>
+        SelectedCatalogProject?.ContentType == CatalogContentType.Mod;
+
+    public CatalogVersion? SelectedCatalogVersion
     {
-        get => _searchLoader;
-        set => SetProperty(ref _searchLoader, value);
+        get => _selectedCatalogVersion;
+        set
+        {
+            if (SetProperty(ref _selectedCatalogVersion, value))
+            {
+                DownloadCatalogVersionCommand.RaiseCanExecuteChanged();
+            }
+        }
     }
 
-    public ModrinthProject? SelectedProject
+    public string? SelectedProjectGameVersion
     {
-        get => _selectedProject;
-        set => SetProperty(ref _selectedProject, value);
+        get => _selectedProjectGameVersion;
+        set
+        {
+            if (SetProperty(ref _selectedProjectGameVersion, value))
+            {
+                RefreshCatalogVersionFilters();
+            }
+        }
+    }
+
+    public string? SelectedProjectLoader
+    {
+        get => _selectedProjectLoader;
+        set
+        {
+            if (SetProperty(ref _selectedProjectLoader, value))
+            {
+                RefreshCatalogVersionFilters();
+            }
+        }
+    }
+
+    public InstanceDescriptor? SelectedDownloadInstance
+    {
+        get => _selectedDownloadInstance;
+        set
+        {
+            if (SetProperty(ref _selectedDownloadInstance, value))
+            {
+                DownloadCatalogVersionCommand.RaiseCanExecuteChanged();
+            }
+        }
+    }
+
+    public string CatalogStatus
+    {
+        get => _catalogStatus;
+        private set => SetProperty(ref _catalogStatus, value);
     }
 
     public string NewOfflineName
@@ -272,8 +368,10 @@ public sealed class MainViewModel : ObservableObject
     public AsyncRelayCommand InstallVanillaCommand { get; }
     public AsyncRelayCommand LoadLoaderVersionsCommand { get; }
     public AsyncRelayCommand InstallLoaderCommand { get; }
-    public AsyncRelayCommand SearchModrinthCommand { get; }
-    public AsyncRelayCommand InstallProjectCommand { get; }
+    public AsyncRelayCommand SelectDownloadSectionCommand { get; }
+    public AsyncRelayCommand OpenCatalogProjectCommand { get; }
+    public RelayCommand CloseCatalogProjectCommand { get; }
+    public AsyncRelayCommand DownloadCatalogVersionCommand { get; }
     public RelayCommand OpenDataFolderCommand { get; }
     public RelayCommand OpenLogFolderCommand { get; }
     public RelayCommand ClearVisibleLogCommand { get; }
@@ -304,6 +402,10 @@ public sealed class MainViewModel : ObservableObject
         {
             item.IsSelected = item.Key == page;
         }
+        if (page == "downloads")
+        {
+            _ = RefreshDownloadsAsync();
+        }
     }
 
     private async Task RefreshInstancesAsync()
@@ -323,7 +425,6 @@ public sealed class MainViewModel : ObservableObject
             if (SelectedInstance?.GameVersion is { } gameVersion)
             {
                 LoaderGameVersion = gameVersion;
-                SearchGameVersion = gameVersion;
             }
             Log($"扫描完成，共找到 {Instances.Count} 个实例。");
         });
@@ -666,11 +767,13 @@ public sealed class MainViewModel : ObservableObject
     {
         await RunBusyAsync("正在获取 Mojang 版本清单…", async () =>
         {
-            var versions = await _runtime.Installer.GetVanillaVersionsAsync(IncludeSnapshots);
+            var versions = await _runtime.Installer.GetVanillaVersionsAsync(true);
             VanillaVersions.Clear();
+            GameVersionChoices.Clear();
             foreach (var version in versions)
             {
                 VanillaVersions.Add(version);
+                GameVersionChoices.Add(version.Id);
             }
             SelectedVanillaVersion = VanillaVersions.FirstOrDefault(version => version.Id == LoaderGameVersion) ??
                                      VanillaVersions.FirstOrDefault();
@@ -678,20 +781,20 @@ public sealed class MainViewModel : ObservableObject
         });
     }
 
-    private async Task InstallVanillaAsync()
+    private async Task InstallVanillaVersionAsync(VersionManifestEntry? version)
     {
-        if (SelectedVanillaVersion is null)
+        if (version is null)
         {
             return;
         }
         try
         {
-            await RunBusyAsync($"正在安装 Minecraft {SelectedVanillaVersion.Id}…", async () =>
+            await RunBusyAsync($"正在安装 Minecraft {version.Id}…", async () =>
             {
                 var progress = CreateDownloadProgress();
                 var id = await _runtime.Installer.InstallVanillaAsync(
                     Settings.MinecraftDirectory,
-                    SelectedVanillaVersion,
+                    version,
                     Settings.DownloadConcurrency,
                     Settings.MirrorBaseUrl,
                     ApproveMirrorAsync,
@@ -758,72 +861,286 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
-    private async Task SearchModrinthAsync()
+    private async Task RefreshDownloadsAsync()
     {
         try
         {
-            await RunBusyAsync("正在搜索 Modrinth…", async () =>
+            await LoadVanillaVersionsAsync();
+            if (IsCatalogSection)
             {
-                var result = await _runtime.Modrinth.SearchAsync(
-                    SearchQuery,
-                    SearchProjectType,
-                    SearchGameVersion,
-                    string.IsNullOrWhiteSpace(SearchLoader) ? null : SearchLoader,
+                await LoadCatalogProjectsAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            CatalogStatus = ex.Message;
+            Log("下载内容刷新失败：" + ex.Message);
+        }
+    }
+
+    private async Task SelectDownloadSectionAsync(string key)
+    {
+        SelectedDownloadSection = key;
+        foreach (var section in DownloadSections)
+        {
+            section.IsSelected = section.Key == key;
+        }
+        CloseCatalogProject();
+        if (IsVanillaSection)
+        {
+            await LoadVanillaVersionsAsync();
+            return;
+        }
+        await LoadCatalogProjectsAsync();
+    }
+
+    private async Task LoadCatalogProjectsAsync()
+    {
+        var section = DownloadSections.FirstOrDefault(item => item.Key == SelectedDownloadSection);
+        if (section?.ContentType is not { } contentType)
+        {
+            return;
+        }
+
+        try
+        {
+            await RunBusyAsync($"正在刷新{section.Label}列表…", async () =>
+            {
+                var modrinthType = ToModrinthType(contentType);
+                var modrinthTask = _runtime.Modrinth.SearchAsync(
+                    "",
+                    modrinthType,
+                    null,
+                    null,
                     0,
-                    30);
-                ModrinthProjects.Clear();
-                foreach (var project in result.Hits)
+                    50,
+                    "downloads");
+                var modrinthResult = await modrinthTask;
+
+                CatalogProjects.Clear();
+                foreach (var project in modrinthResult.Hits.Select(hit =>
+                             new CatalogProject(
+                                 CatalogSource.Modrinth,
+                                 contentType,
+                                 hit.Id,
+                                 hit.Slug,
+                                 hit.Title,
+                                 hit.Description,
+                                 hit.IconUrl,
+                                 hit.Downloads,
+                                 $"https://modrinth.com/{modrinthType}/{hit.Slug}")))
                 {
-                    ModrinthProjects.Add(project);
+                    CatalogProjects.Add(project);
                 }
-                Log($"Modrinth 搜索到 {result.TotalHits} 个结果。");
+                CatalogStatus = $"已按下载量显示 {CatalogProjects.Count} 个 Modrinth 项目。";
+                Log($"已刷新{section.Label}：{CatalogProjects.Count} 个项目。");
             });
         }
         catch (Exception ex)
         {
-            _runtime.Dialogs.Error(ex.Message, "Modrinth 搜索失败");
+            CatalogProjects.Clear();
+            CatalogStatus = $"资源列表加载失败：{ex.Message}";
+            Log(CatalogStatus);
         }
     }
 
-    private async Task InstallProjectAsync(ModrinthProject? project)
+    private async Task OpenCatalogProjectAsync(CatalogProject? project)
     {
-        if (project is null || SelectedInstance is null)
+        if (project is null)
         {
-            _runtime.Dialogs.Error("请先选择项目和目标实例。");
             return;
         }
+
         try
         {
-            await RunBusyAsync($"正在安装 {project.Title}…", async () =>
+            await RunBusyAsync($"正在加载 {project.Title}…", async () =>
             {
-                var versions = await _runtime.Modrinth.GetVersionsAsync(
-                    project.Id,
-                    SelectedInstance.GameVersion ?? SearchGameVersion,
-                    project.ProjectType == "mod" ? SearchLoader : null);
-                var version = versions.FirstOrDefault();
-                if (version is null)
+                SelectedCatalogProject = project;
+                IsProjectDetailVisible = true;
+                ProjectVersions.Clear();
+                FilteredProjectVersions.Clear();
+                ProjectGameVersions.Clear();
+                ProjectLoaders.Clear();
+                MatchingDownloadInstances.Clear();
+
+                var versions = await LoadModrinthVersionsAsync(project);
+                foreach (var version in versions)
                 {
-                    throw new InvalidOperationException("没有找到与当前实例兼容的版本。");
+                    ProjectVersions.Add(version);
                 }
-                if (version.Dependencies.Count > 0)
+
+                foreach (var gameVersion in ProjectVersions
+                             .SelectMany(version => version.GameVersions)
+                             .Distinct(StringComparer.OrdinalIgnoreCase)
+                             .OrderByDescending(value => value, NaturalVersionComparer.Instance))
                 {
-                    Log($"该版本声明了 {version.Dependencies.Count} 个必需依赖；请先安装对应前置。");
+                    ProjectGameVersions.Add(gameVersion);
                 }
-                var item = await _runtime.Modrinth.CreateDownloadAsync(project, version, SelectedInstance.DirectoryPath);
+                foreach (var loader in ProjectVersions
+                             .SelectMany(version => version.Loaders)
+                             .Distinct(StringComparer.OrdinalIgnoreCase)
+                             .OrderBy(value => value, StringComparer.OrdinalIgnoreCase))
+                {
+                    ProjectLoaders.Add(loader);
+                }
+
+                SelectedProjectGameVersion =
+                    ProjectGameVersions.FirstOrDefault(value =>
+                        value.Equals(SelectedInstance?.GameVersion, StringComparison.OrdinalIgnoreCase)) ??
+                    ProjectGameVersions.FirstOrDefault();
+                SelectedProjectLoader =
+                    ProjectLoaders.FirstOrDefault(value =>
+                        value.Equals(SelectedInstance?.Loader.ToString(), StringComparison.OrdinalIgnoreCase)) ??
+                    ProjectLoaders.FirstOrDefault();
+                RefreshCatalogVersionFilters();
+                CatalogStatus = ProjectVersions.Count == 0
+                    ? "该项目没有可用的官方文件。"
+                    : $"已加载 {ProjectVersions.Count} 个官方版本。";
+            });
+        }
+        catch (Exception ex)
+        {
+            CatalogStatus = $"项目详情加载失败：{ex.Message}";
+            _runtime.Dialogs.Error(ex.Message, "项目详情加载失败");
+        }
+    }
+
+    private void CloseCatalogProject()
+    {
+        IsProjectDetailVisible = false;
+        SelectedCatalogProject = null;
+        SelectedCatalogVersion = null;
+        ProjectVersions.Clear();
+        FilteredProjectVersions.Clear();
+        MatchingDownloadInstances.Clear();
+    }
+
+    private async Task<IReadOnlyList<CatalogVersion>> LoadModrinthVersionsAsync(CatalogProject project)
+    {
+        var versions = await _runtime.Modrinth.GetVersionsAsync(project.Id, null, null);
+        return versions.Select(version => new CatalogVersion(
+            CatalogSource.Modrinth,
+            project.Id,
+            version.Id,
+            version.Name,
+            version.VersionNumber,
+            null,
+            version.GameVersions,
+            version.Loaders,
+            version.Dependencies.Select(id => new CatalogDependency(id, null, id, true)).ToArray(),
+            version.Files.Select(file => new CatalogFile(
+                file.Url,
+                file.FileName,
+                string.IsNullOrWhiteSpace(file.Sha512) ? null : file.Sha512,
+                null,
+                file.Size,
+                file.Primary)).ToArray())).ToArray();
+    }
+
+    private void RefreshCatalogVersionFilters()
+    {
+        if (!IsProjectDetailVisible)
+        {
+            return;
+        }
+        var filtered = ProjectVersions.Where(version =>
+            (string.IsNullOrWhiteSpace(SelectedProjectGameVersion) ||
+             version.GameVersions.Contains(SelectedProjectGameVersion, StringComparer.OrdinalIgnoreCase)) &&
+            (SelectedCatalogProject?.ContentType != CatalogContentType.Mod ||
+             string.IsNullOrWhiteSpace(SelectedProjectLoader) ||
+             version.Loaders.Contains(SelectedProjectLoader, StringComparer.OrdinalIgnoreCase)))
+            .ToArray();
+        FilteredProjectVersions.Clear();
+        foreach (var version in filtered)
+        {
+            FilteredProjectVersions.Add(version);
+        }
+        SelectedCatalogVersion = FilteredProjectVersions.FirstOrDefault();
+
+        MatchingDownloadInstances.Clear();
+        foreach (var instance in Instances.Where(instance =>
+                     (string.IsNullOrWhiteSpace(SelectedProjectGameVersion) ||
+                      instance.GameVersion?.Equals(SelectedProjectGameVersion, StringComparison.OrdinalIgnoreCase) == true) &&
+                     (SelectedCatalogProject?.ContentType != CatalogContentType.Mod ||
+                      string.IsNullOrWhiteSpace(SelectedProjectLoader) ||
+                      instance.Loader.ToString().Equals(SelectedProjectLoader, StringComparison.OrdinalIgnoreCase))))
+        {
+            MatchingDownloadInstances.Add(instance);
+        }
+        SelectedDownloadInstance = MatchingDownloadInstances.FirstOrDefault();
+        DownloadCatalogVersionCommand.RaiseCanExecuteChanged();
+    }
+
+    private async Task DownloadCatalogVersionAsync()
+    {
+        if (SelectedCatalogProject is null ||
+            SelectedCatalogVersion is null ||
+            SelectedDownloadInstance is null)
+        {
+            _runtime.Dialogs.Error("请选择官方文件版本和匹配的本地实例。");
+            return;
+        }
+
+        var file = SelectedCatalogVersion.Files.FirstOrDefault(item => item.Primary) ??
+                   SelectedCatalogVersion.Files.FirstOrDefault();
+        if (file is null)
+        {
+            _runtime.Dialogs.Error(
+                "该文件没有可用的直接下载地址，请打开项目页面手动下载。",
+                "无法直接下载");
+            Process.Start(new ProcessStartInfo(SelectedCatalogProject.ProjectUrl) { UseShellExecute = true });
+            return;
+        }
+
+        var folder = SelectedCatalogProject.ContentType switch
+        {
+            CatalogContentType.Mod => "mods",
+            CatalogContentType.ResourcePack => "resourcepacks",
+            CatalogContentType.Shader => "shaderpacks",
+            CatalogContentType.Modpack => "modpacks",
+            _ => "mods"
+        };
+        try
+        {
+            await RunBusyAsync($"正在下载 {file.FileName}…", async () =>
+            {
+                var item = new DownloadItem(
+                    $"{SelectedCatalogProject.Title} {SelectedCatalogVersion.VersionNumber}",
+                    new Uri(file.Url),
+                    Path.Combine(SelectedDownloadInstance.DirectoryPath, folder, file.FileName),
+                    Sha1: file.Sha1,
+                    Sha512: file.Sha512,
+                    Size: file.Size > 0 ? file.Size : null,
+                    Kind: SelectedCatalogProject.ContentType switch
+                    {
+                        CatalogContentType.ResourcePack => DownloadKind.ResourcePack,
+                        CatalogContentType.Shader => DownloadKind.Shader,
+                        CatalogContentType.Modpack => DownloadKind.Loader,
+                        _ => DownloadKind.Mod
+                    });
                 await _runtime.Downloads.DownloadAsync(
-                    new DownloadPlan(project.Title, SelectedInstance.Id, [item]),
+                    new DownloadPlan(SelectedCatalogProject.Title, SelectedDownloadInstance.Id, [item]),
                     Settings.DownloadConcurrency,
                     ApproveMirrorAsync,
                     CreateDownloadProgress(),
                     Log);
-                Log($"已安装 {project.Title} {version.VersionNumber}。");
+                Log($"已下载到实例：{SelectedDownloadInstance.DirectoryPath}");
             });
         }
         catch (Exception ex)
         {
-            _runtime.Dialogs.Error(ex.Message, "安装资源失败");
+            _runtime.Dialogs.Error(ex.Message, "下载失败");
         }
     }
+
+    private static string ToModrinthType(CatalogContentType type) => type switch
+    {
+        CatalogContentType.Mod => "mod",
+        CatalogContentType.ResourcePack => "resourcepack",
+        CatalogContentType.Shader => "shader",
+        CatalogContentType.Modpack => "modpack",
+        _ => "mod"
+    };
 
     private IProgress<DownloadProgress> CreateDownloadProgress() => new Progress<DownloadProgress>(progress =>
     {

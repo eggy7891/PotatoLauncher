@@ -1,0 +1,73 @@
+name: Update latest metadata
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to mirror, or empty for the latest stable release
+        required: false
+        type: string
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  update-latest:
+    if: github.event_name == 'workflow_dispatch' || github.event.release.prerelease == false
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Resolve release
+        id: release
+        shell: pwsh
+        run: |
+          $tag = "${{ github.event.release.tag_name }}"
+          if ("${{ github.event_name }}" -eq "workflow_dispatch" -and "${{ inputs.tag }}") {
+            $tag = "${{ inputs.tag }}"
+          }
+          if (-not $tag) {
+            $tag = gh release view --repo "${{ github.repository }}" --json tagName --jq ".tagName"
+          }
+          if (-not $tag) { throw "Unable to resolve release tag" }
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+      - name: Mirror stable asset names
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.release.outputs.tag }}
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force release-assets | Out-Null
+          gh release download $env:TAG --repo "${{ github.repository }}" --pattern "PotatoLauncher-[0-9]*-win-x64-portable.zip" --dir release-assets
+          $portable = Get-ChildItem release-assets -Filter "PotatoLauncher-[0-9]*-win-x64-portable.zip" |
+            Select-Object -First 1
+          if (-not $portable) { throw "Versioned portable package is missing" }
+          $stable = Join-Path (Get-Location) "PotatoLauncher-win-x64-portable.zip"
+          Copy-Item $portable.FullName $stable -Force
+          gh release upload $env:TAG $stable --repo "${{ github.repository }}" --clobber
+      - name: Update latest version file
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+        shell: pwsh
+        run: |
+          $version = $env:TAG.TrimStart("v")
+          @{
+            version = $version
+            tag = $env:TAG
+            asset = "PotatoLauncher-win-x64-portable.zip"
+            platform = "windows-x64"
+            selfContained = $true
+          } | ConvertTo-Json | Set-Content latest/version.json -Encoding utf8
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add latest/version.json
+          git diff --cached --quiet
+          if ($LASTEXITCODE -ne 0) {
+            git commit -m "[skip ci] Update latest release to $env:TAG"
+            git push origin main
+          }
