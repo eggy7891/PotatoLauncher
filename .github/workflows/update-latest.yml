@@ -47,7 +47,8 @@ jobs:
             Select-Object -First 1
           if (-not $assetName) { throw "Versioned portable package is missing" }
           gh release download $env:TAG --repo "${{ github.repository }}" --pattern $assetName --dir release-assets
-          $portable = Get-ChildItem release-assets -Filter "PotatoLauncher-[0-9]*-win-x64-portable.zip" |
+          $portable = Get-ChildItem release-assets -Filter "PotatoLauncher-*-win-x64-portable.zip" |
+            Where-Object { $_.Name -match '^PotatoLauncher-[0-9].*-win-x64-portable\.zip$' } |
             Select-Object -First 1
           if (-not $portable) { throw "Versioned portable package is missing" }
           $stable = Join-Path (Get-Location) "PotatoLauncher-win-x64-portable.zip"
