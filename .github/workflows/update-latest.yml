@@ -43,7 +43,10 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force release-assets | Out-Null
-          gh release download $env:TAG --repo "${{ github.repository }}" --pattern "PotatoLauncher-[0-9]*-win-x64-portable.zip" --dir release-assets
+          $assetName = gh release view $env:TAG --repo "${{ github.repository }}" --json assets --jq '.assets[] | select(.name | test("^PotatoLauncher-[0-9].*-win-x64-portable\\.zip$")) | .name' |
+            Select-Object -First 1
+          if (-not $assetName) { throw "Versioned portable package is missing" }
+          gh release download $env:TAG --repo "${{ github.repository }}" --pattern $assetName --dir release-assets
           $portable = Get-ChildItem release-assets -Filter "PotatoLauncher-[0-9]*-win-x64-portable.zip" |
             Select-Object -First 1
           if (-not $portable) { throw "Versioned portable package is missing" }
