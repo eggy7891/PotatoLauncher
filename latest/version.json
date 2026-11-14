@@ -1,7 +1,7 @@
 {
   "version": "1.0.2",
-  "tag": "v1.0.2",
-  "asset": "PotatoLauncher-win-x64-portable.zip",
   "platform": "windows-x64",
-  "selfContained": true
+  "tag": "v1.0.2",
+  "selfContained": true,
+  "asset": "PotatoLauncher-win-x64-portable.zip"
 }
